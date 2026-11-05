@@ -136,15 +136,47 @@ export interface MultiDeviceNetworkState {
 }
 
 export const getApiBase = (): string => {
+  // 1. Check runtime user override (browser localStorage)
   if (typeof window !== 'undefined') {
     const custom = localStorage.getItem('cipherlink_backend_url');
     if (custom) return custom.replace(/\/+$/, '');
   }
+  // 2. Check environment variable injected at build time (e.g. from GitHub Actions or .env)
   const envUrl = import.meta.env.VITE_API_BASE_URL;
-  if (envUrl) {
+  if (envUrl && envUrl.trim()) {
     return (envUrl as string).replace(/\/+$/, '');
   }
+  // 3. In local development, use Vite dev server proxy
+  if (import.meta.env.DEV) {
+    return '/api';
+  }
+  // 4. In production (e.g. GitHub Pages), never hardcode localhost
   return '/api';
+};
+
+export const getWsBase = (): string => {
+  // 1. Check runtime user override (browser localStorage)
+  if (typeof window !== 'undefined') {
+    const customWs = localStorage.getItem('cipherlink_ws_url');
+    if (customWs) return customWs.replace(/\/+$/, '');
+  }
+  // 2. Check environment variable injected at build time
+  const envWs = import.meta.env.VITE_WS_URL;
+  if (envWs && envWs.trim()) {
+    return (envWs as string).replace(/\/+$/, '');
+  }
+  // 3. Derive from getApiBase if an absolute HTTP/HTTPS URL is set
+  const apiBase = getApiBase();
+  if (apiBase.startsWith('http://') || apiBase.startsWith('https://')) {
+    const wsProto = apiBase.startsWith('https://') ? 'wss://' : 'ws://';
+    return apiBase.replace(/^https?:\/\//, wsProto) + '/ws';
+  }
+  // 4. In local development or same-host deployment
+  if (typeof window !== 'undefined') {
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${proto}//${window.location.host}/ws`;
+  }
+  return '/ws';
 };
 
 export const setApiBase = (url: string) => {
@@ -153,6 +185,16 @@ export const setApiBase = (url: string) => {
       localStorage.setItem('cipherlink_backend_url', url.trim().replace(/\/+$/, ''));
     } else {
       localStorage.removeItem('cipherlink_backend_url');
+    }
+  }
+};
+
+export const setWsBase = (url: string) => {
+  if (typeof window !== 'undefined') {
+    if (url && url.trim()) {
+      localStorage.setItem('cipherlink_ws_url', url.trim().replace(/\/+$/, ''));
+    } else {
+      localStorage.removeItem('cipherlink_ws_url');
     }
   }
 };

@@ -37,6 +37,9 @@ jobs:
           npm install
 
       - name: Build production frontend
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_WS_URL: ${{ vars.VITE_WS_URL }}
         run: |
           cd cipherlink/frontend
           npm run build
