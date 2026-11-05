@@ -19,7 +19,41 @@ export const App: React.FC = () => {
     return sessionStorage.getItem('cipherlink_intro_seen') !== 'true';
   });
 
-  const [currentPage, setCurrentPage] = useState<PageId>('command-center');
+  const validPages: PageId[] = [
+    'command-center',
+    'four-device-network',
+    'secure-transfer',
+    'ecc-engine',
+    'comparison-lab',
+    'security-center',
+    'project-info',
+    'documentation',
+  ];
+
+  const getPageFromHash = (): PageId => {
+    const rawHash = window.location.hash.replace(/^#\/?/, '').trim();
+    return validPages.includes(rawHash as PageId) ? (rawHash as PageId) : 'command-center';
+  };
+
+  const [currentPage, setCurrentPage] = useState<PageId>(() => getPageFromHash());
+
+  // Listen to browser Back/Forward navigation
+  useEffect(() => {
+    const handleHashChange = () => {
+      const page = getPageFromHash();
+      setCurrentPage(page);
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const handlePageSelect = (page: PageId) => {
+    setCurrentPage(page);
+    if (window.location.hash !== `#${page}`) {
+      window.location.hash = page;
+    }
+  };
 
   const handleIntroComplete = () => {
     setShowIntro(false);
@@ -43,7 +77,7 @@ export const App: React.FC = () => {
         {/* Navigation Header */}
         <Header
           currentPage={currentPage}
-          onSelectPage={setCurrentPage}
+          onSelectPage={handlePageSelect}
           onReplayIntro={handleReplayIntro}
         />
 
@@ -57,7 +91,7 @@ export const App: React.FC = () => {
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.3, ease: 'easeInOut' }}
             >
-              {currentPage === 'command-center' && <CommandCenter onNavigate={setCurrentPage} />}
+              {currentPage === 'command-center' && <CommandCenter onNavigate={handlePageSelect} />}
               {currentPage === 'four-device-network' && <FourDeviceNetwork />}
               {currentPage === 'secure-transfer' && <SecureTransfer />}
               {currentPage === 'ecc-engine' && <ECCEngine />}

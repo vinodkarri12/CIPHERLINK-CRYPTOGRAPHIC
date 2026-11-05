@@ -1,0 +1,23 @@
+# Node dependencies
+node_modules/
+cipherlink/frontend/node_modules/
+
+# Python cache & artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+cipherlink/backend/__pycache__/
+cipherlink/backend/app/__pycache__/
+cipherlink/backend/app/*/__pycache__/
+cipherlink/backend/tests/__pycache__/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment files
+.env
+.env.local

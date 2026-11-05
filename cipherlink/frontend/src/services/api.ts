@@ -135,28 +135,48 @@ export interface MultiDeviceNetworkState {
   total_network_peers: number;
 }
 
-const API_BASE = '/api';
+export const getApiBase = (): string => {
+  if (typeof window !== 'undefined') {
+    const custom = localStorage.getItem('cipherlink_backend_url');
+    if (custom) return custom.replace(/\/+$/, '');
+  }
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (envUrl) {
+    return (envUrl as string).replace(/\/+$/, '');
+  }
+  return '/api';
+};
+
+export const setApiBase = (url: string) => {
+  if (typeof window !== 'undefined') {
+    if (url && url.trim()) {
+      localStorage.setItem('cipherlink_backend_url', url.trim().replace(/\/+$/, ''));
+    } else {
+      localStorage.removeItem('cipherlink_backend_url');
+    }
+  }
+};
 
 export const api = {
   async getHealth() {
-    const res = await fetch(`${API_BASE}/health`);
+    const res = await fetch(`${getApiBase()}/health`);
     return res.json();
   },
 
   async getStats(): Promise<SystemStats> {
-    const res = await fetch(`${API_BASE}/stats`);
+    const res = await fetch(`${getApiBase()}/stats`);
     if (!res.ok) throw new Error('Failed to fetch system stats');
     return res.json();
   },
 
   async getTransferHistory(limit = 20): Promise<TransferRecord[]> {
-    const res = await fetch(`${API_BASE}/history?limit=${limit}`);
+    const res = await fetch(`${getApiBase()}/history?limit=${limit}`);
     if (!res.ok) throw new Error('Failed to fetch transfer history');
     return res.json();
   },
 
   async getSecurityLogs(limit = 50): Promise<SecurityLogRecord[]> {
-    const res = await fetch(`${API_BASE}/security/logs?limit=${limit}`);
+    const res = await fetch(`${getApiBase()}/security/logs?limit=${limit}`);
     if (!res.ok) throw new Error('Failed to fetch security logs');
     return res.json();
   },
@@ -166,7 +186,7 @@ export const api = {
     formData.append('curve', curve);
     formData.append('client_id', clientId);
     formData.append('force_regenerate', forceRegenerate.toString());
-    const res = await fetch(`${API_BASE}/crypto/ecc/generate-keys`, {
+    const res = await fetch(`${getApiBase()}/crypto/ecc/generate-keys`, {
       method: 'POST',
       body: formData,
     });
@@ -182,7 +202,7 @@ export const api = {
     curve?: string;
     receiver_public_key_pem?: string;
   }): Promise<EstablishSessionResponse> {
-    const res = await fetch(`${API_BASE}/crypto/session/establish`, {
+    const res = await fetch(`${getApiBase()}/crypto/session/establish`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -206,7 +226,7 @@ export const api = {
     salt_hex?: string;
     info?: string;
   }): Promise<DeriveSecretResponse> {
-    const res = await fetch(`${API_BASE}/crypto/ecc/derive-secret`, {
+    const res = await fetch(`${getApiBase()}/crypto/ecc/derive-secret`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
@@ -216,7 +236,7 @@ export const api = {
   },
 
   async getCurveMathDetails(curve = 'SECP256R1') {
-    const res = await fetch(`${API_BASE}/crypto/ecc/math-details?curve=${curve}`);
+    const res = await fetch(`${getApiBase()}/crypto/ecc/math-details?curve=${curve}`);
     if (!res.ok) throw new Error('Failed to fetch curve details');
     return res.json();
   },
@@ -226,7 +246,7 @@ export const api = {
     formData.append('file', file);
     if (sessionId) formData.append('session_id', sessionId);
     if (fileId) formData.append('file_id', fileId);
-    const res = await fetch(`${API_BASE}/crypto/encrypt-file`, {
+    const res = await fetch(`${getApiBase()}/crypto/encrypt-file`, {
       method: 'POST',
       body: formData,
     });
@@ -235,7 +255,7 @@ export const api = {
   },
 
   async decryptFile(payload: any) {
-    const res = await fetch(`${API_BASE}/crypto/decrypt-file`, {
+    const res = await fetch(`${getApiBase()}/crypto/decrypt-file`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -248,7 +268,7 @@ export const api = {
   },
 
   async simulateTamper(payload: any) {
-    const res = await fetch(`${API_BASE}/crypto/simulate-tamper`, {
+    const res = await fetch(`${getApiBase()}/crypto/simulate-tamper`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -258,7 +278,7 @@ export const api = {
   },
 
   async runBenchmarks(algorithm = 'ALL', fileSizeMb = 10, iterations = 3): Promise<BenchmarkReport> {
-    const res = await fetch(`${API_BASE}/benchmarks/run`, {
+    const res = await fetch(`${getApiBase()}/benchmarks/run`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -291,7 +311,7 @@ export const api = {
     formData.append('duration_ms', (data.duration_ms || 100).toString());
     formData.append('sha256_hash', data.sha256_hash);
 
-    const res = await fetch(`${API_BASE}/transfers/record`, {
+    const res = await fetch(`${getApiBase()}/transfers/record`, {
       method: 'POST',
       body: formData,
     });
@@ -300,13 +320,13 @@ export const api = {
   },
 
   async getMeshState(): Promise<MultiDeviceNetworkState> {
-    const res = await fetch(`${API_BASE}/network/mesh`);
+    const res = await fetch(`${getApiBase()}/network/mesh`);
     if (!res.ok) throw new Error('Failed to fetch mesh network state');
     return res.json();
   },
 
   async pairMeshDevices(initiatorId: string, targetId: string, pairingCode: string) {
-    const res = await fetch(`${API_BASE}/network/pair`, {
+    const res = await fetch(`${getApiBase()}/network/pair`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -326,7 +346,7 @@ export const api = {
     const formData = new FormData();
     formData.append('initiator_id', initiatorId);
     formData.append('target_id', targetId);
-    const res = await fetch(`${API_BASE}/network/unpair`, {
+    const res = await fetch(`${getApiBase()}/network/unpair`, {
       method: 'POST',
       body: formData,
     });
@@ -337,7 +357,7 @@ export const api = {
   async setDeviceStatus(deviceId: string, status: string) {
     const formData = new FormData();
     formData.append('status', status);
-    const res = await fetch(`${API_BASE}/network/device/${deviceId}/status`, {
+    const res = await fetch(`${getApiBase()}/network/device/${deviceId}/status`, {
       method: 'POST',
       body: formData,
     });
@@ -352,7 +372,7 @@ export const api = {
     if (filename) formData.append('filename', filename);
     if (filesize) formData.append('filesize', filesize.toString());
 
-    const res = await fetch(`${API_BASE}/network/transfer/initiate`, {
+    const res = await fetch(`${getApiBase()}/network/transfer/initiate`, {
       method: 'POST',
       body: formData,
     });
